@@ -652,6 +652,72 @@ export {
 } from "./types/feedback.js";
 
 export {
+  BRIEFING_FEEDBACK_RATINGS,
+  BRIEFING_FEEDBACK_CATEGORIES,
+  type BriefingFeedback,
+  type BriefingFeedbackCreate,
+  type BriefingFeedbackRating,
+  type BriefingFeedbackCategory,
+  type FeedbackTrends,
+} from "./types/briefing-feedback.js";
+
+export {
+  type FlightCrewBriefing,
+  type BriefingOverview,
+  type WeatherSection,
+  type WeatherStation,
+  type Notam,
+  type NotamSection,
+  type RouteWeather,
+  type RouteSection,
+  type CrewAlert,
+  type AlertSection,
+} from "./types/briefing.js";
+
+export {
+  type QualityScorecard,
+  type QualityEscalation,
+  type QualityMetric,
+  type QualityMetricsResponse,
+  type CrewMemberScore,
+  type GatePassRate,
+} from "./types/quality.js";
+
+export {
+  type QualityScoreAdjustment,
+  type ReReviewQueueItem,
+  type CrewRatingFlag,
+  type ScoreAdjustmentResult,
+  type ReReviewTriggerReason,
+  type ReReviewStatus,
+  type EscalationLevel,
+} from "./types/quality-score-adjustments.js";
+
+export {
+  BRIEFING_QUALITY_LABELS,
+  BRIEFING_QUALITY_DIMENSIONS,
+  BRIEFING_QUALITY_GATES,
+  BRIEFING_MANDATORY_GATE_IDS,
+  type BriefingQualityLabel,
+  type BriefingQualityDimension,
+  type BriefingDimensionScore,
+  type BriefingGateResult,
+  type BriefingQualityClassification,
+  type BriefingQualityRecord,
+  type BriefingQualitySummary,
+} from "./types/briefing-quality.js";
+
+export {
+  briefingQualityLabelSchema,
+  briefingQualityDimensionSchema,
+  briefingDimensionScoreSchema,
+  briefingGateResultSchema,
+  triggerBriefingQualityClassificationSchema,
+  briefingQualityClassificationResponseSchema,
+  type TriggerBriefingQualityClassification,
+} from "./validators/briefing-quality.js";
+
+export {
   DAILY_RETENTION_PRESETS,
   WEEKLY_RETENTION_PRESETS,
   MONTHLY_RETENTION_PRESETS,
@@ -689,6 +755,10 @@ export {
   type UpdateCompany,
   type UpdateCompanyBranding,
   type UpsertIssueFeedbackVote,
+  briefingFeedbackRatingSchema,
+  briefingFeedbackCategorySchema,
+  submitBriefingFeedbackSchema,
+  type SubmitBriefingFeedback,
   environmentDriverSchema,
   environmentStatusSchema,
   environmentLeaseStatusSchema,

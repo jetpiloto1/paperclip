@@ -6,6 +6,15 @@ export interface DashboardRunActivityDay {
   total: number;
 }
 
+export interface DashboardBriefingQualitySummary {
+  totalClassified: number;
+  premium: number;
+  standard: number;
+  degraded: number;
+  failed: number;
+  averageScore: number;
+}
+
 export interface DashboardSummary {
   companyId: string;
   agents: {
@@ -33,4 +42,5 @@ export interface DashboardSummary {
     pausedProjects: number;
   };
   runActivity: DashboardRunActivityDay[];
+  briefingQuality: DashboardBriefingQualitySummary | null;
 }

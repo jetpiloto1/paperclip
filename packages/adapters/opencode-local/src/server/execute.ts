@@ -76,7 +76,7 @@ function resolveOpenCodeBiller(env: Record<string, string>, provider: string | n
   return inferOpenAiCompatibleBiller(env, null) ?? provider ?? "unknown";
 }
 
-const REMOTE_OPENCODE_MODELS_PROBE_DEFAULT_TIMEOUT_SEC = 20;
+const REMOTE_OPENCODE_MODELS_PROBE_DEFAULT_TIMEOUT_SEC = 60;
 const REMOTE_OPENCODE_MODELS_PROBE_SANDBOX_TIMEOUT_SEC = 120;
 
 async function ensureRemoteOpenCodeModelConfiguredAndAvailable(input: {
@@ -95,7 +95,7 @@ async function ensureRemoteOpenCodeModelConfiguredAndAvailable(input: {
       ? REMOTE_OPENCODE_MODELS_PROBE_SANDBOX_TIMEOUT_SEC
       : REMOTE_OPENCODE_MODELS_PROBE_DEFAULT_TIMEOUT_SEC;
   const probeTimeoutSec = input.timeoutSec > 0
-    ? Math.min(input.timeoutSec, defaultProbeTimeoutSec)
+    ? Math.max(input.timeoutSec, defaultProbeTimeoutSec)
     : defaultProbeTimeoutSec;
   const probe = await runAdapterExecutionTargetProcess(
     input.runId,
@@ -333,11 +333,13 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       resolvedCommand,
     });
     if (!executionTargetIsRemote) {
+      const modelsTimeoutSec = timeoutSec > 0 ? Math.min(timeoutSec, 60) : 30;
       await ensureOpenCodeModelConfiguredAndAvailable({
         model,
         command,
         cwd,
         env: runtimeEnv,
+        timeoutSec: modelsTimeoutSec,
       });
     }
 
@@ -420,6 +422,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           { cwd, env: preparedRuntimeConfig.env, timeoutSec, graceSec, onLog },
         );
       }
+      const remoteModelsTimeout = Math.min(timeoutSec > 0 ? timeoutSec : 60, REMOTE_OPENCODE_MODELS_PROBE_DEFAULT_TIMEOUT_SEC);
       await ensureRemoteOpenCodeModelConfiguredAndAvailable({
         runId,
         executionTarget,
@@ -427,7 +430,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         model,
         cwd,
         env: preparedRuntimeConfig.env,
-        timeoutSec,
+        timeoutSec: remoteModelsTimeout,
         graceSec,
       });
     }

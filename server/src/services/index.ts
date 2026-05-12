@@ -1,6 +1,13 @@
+export { qualityService, type QualityService } from "./quality.js";
 export { companyService } from "./companies.js";
 export { companySearchService } from "./company-search.js";
 export { feedbackService } from "./feedback.js";
+export { briefingFeedbackService, type BriefingFeedbackService } from "./briefing-feedback.js";
+export { briefingFeedbackAlertsService, type BriefingFeedbackAlertsService } from "./briefing-feedback-alerts.js";
+export { briefingQualityService, type BriefingQualityService } from "./briefing-quality.js";
+export { scoreAdjustmentEngine, type ScoreAdjustmentEngine } from "./score-adjustment-engine.js";
+export { reReviewQueueService, type ReReviewQueueService } from "./re-review-queue.js";
+export { crewRatingFlagsService, type CrewRatingFlagsService } from "./crew-rating-flags.js";
 export { companySkillService } from "./company-skills.js";
 export { agentService, deduplicateAgentName } from "./agents.js";
 export { agentInstructionsService, syncInstructionsBundleConfigFromFilePath } from "./agent-instructions.js";

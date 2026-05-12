@@ -24,6 +24,16 @@ export type {
   FeedbackTraceBundle,
 } from "./feedback.js";
 export type {
+  BriefingFeedback,
+  BriefingFeedbackCreate,
+  BriefingFeedbackRating,
+  BriefingFeedbackCategory,
+} from "./briefing-feedback.js";
+export {
+  BRIEFING_FEEDBACK_RATINGS,
+  BRIEFING_FEEDBACK_CATEGORIES,
+} from "./briefing-feedback.js";
+export type {
   InstanceExperimentalSettings,
   InstanceGeneralSettings,
   InstanceSettings,
@@ -310,6 +320,48 @@ export type {
   UserProfileResponse,
   UserProfileWindowStats,
 } from "./user-profile.js";
+export type {
+  FlightCrewBriefing,
+  BriefingOverview,
+  WeatherSection,
+  WeatherStation,
+  Notam,
+  NotamSection,
+  RouteWeather,
+  RouteSection,
+  CrewAlert,
+  AlertSection,
+} from "./briefing.js";
+export type {
+  QualityScoreAdjustment,
+  ReReviewQueueItem,
+  CrewRatingFlag,
+  ScoreAdjustmentResult,
+  ReReviewTriggerReason,
+  ReReviewStatus,
+  EscalationLevel,
+} from "./quality-score-adjustments.js";
+export {
+  BRIEFING_QUALITY_LABELS,
+  BRIEFING_QUALITY_DIMENSIONS,
+  BRIEFING_QUALITY_GATES,
+  BRIEFING_MANDATORY_GATE_IDS,
+  type BriefingQualityLabel,
+  type BriefingQualityDimension,
+  type BriefingDimensionScore,
+  type BriefingGateResult,
+  type BriefingQualityClassification,
+  type BriefingQualityRecord,
+  type BriefingQualitySummary,
+} from "./briefing-quality.js";
+export type {
+  QualityScorecard,
+  QualityEscalation,
+  QualityMetric,
+  QualityMetricsResponse,
+  CrewMemberScore,
+  GatePassRate,
+} from "./quality.js";
 export type { SidebarBadges } from "./sidebar-badges.js";
 export type { SidebarOrderPreference } from "./sidebar-preferences.js";
 export type { InboxDismissal } from "./inbox-dismissal.js";

@@ -100,7 +100,7 @@ Core fields:
 - env (object, optional): KEY=VALUE environment variables
 
 Operational fields:
-- timeoutSec (number, optional): run timeout in seconds
+- timeoutSec (number, optional): run timeout in seconds; also used as the timeout for \`opencode models\` discovery (defaults to 120s when unset)
 - graceSec (number, optional): SIGTERM grace period in seconds
 
 Notes:

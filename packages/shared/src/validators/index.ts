@@ -47,6 +47,12 @@ export {
   type UpsertIssueFeedbackVote,
 } from "./feedback.js";
 export {
+  briefingFeedbackRatingSchema,
+  briefingFeedbackCategorySchema,
+  submitBriefingFeedbackSchema,
+  type SubmitBriefingFeedback,
+} from "./briefing-feedback.js";
+export {
   sidebarOrderPreferenceSchema,
   upsertSidebarOrderPreferenceSchema,
   type UpsertSidebarOrderPreference,
@@ -343,6 +349,15 @@ export {
   createAssetImageMetadataSchema,
   type CreateAssetImageMetadata,
 } from "./asset.js";
+export {
+  briefingQualityLabelSchema,
+  briefingQualityDimensionSchema,
+  briefingDimensionScoreSchema,
+  briefingGateResultSchema,
+  triggerBriefingQualityClassificationSchema,
+  briefingQualityClassificationResponseSchema,
+  type TriggerBriefingQualityClassification,
+} from "./briefing-quality.js";
 
 export {
   createCompanyInviteSchema,

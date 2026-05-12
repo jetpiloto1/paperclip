@@ -1,6 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
-import { agents, approvals, companies, costEvents, heartbeatRuns, issues } from "@paperclipai/db";
+import { agents, approvals, briefingQuality, companies, costEvents, heartbeatRuns, issues } from "@paperclipai/db";
 import { notFound } from "../errors.js";
 import { budgetService } from "./budgets.js";
 
@@ -134,6 +134,22 @@ export function dashboardService(db: Db) {
           : 0;
       const budgetOverview = await budgets.overview(companyId);
 
+      const qualityRows = await db
+        .select({ label: briefingQuality.label, count: sql<number>`count(*)::double precision` })
+        .from(briefingQuality)
+        .groupBy(briefingQuality.label);
+
+      const qualityCounts: Record<string, number> = { premium: 0, standard: 0, degraded: 0, failed: 0 };
+      let qualityTotal = 0;
+      for (const row of qualityRows) {
+        qualityCounts[row.label] = Number(row.count);
+        qualityTotal += Number(row.count);
+      }
+
+      const [{ avgScore }] = await db
+        .select({ avgScore: sql<number>`coalesce(avg(${briefingQuality.overallScore}::double precision), 0)::double precision` })
+        .from(briefingQuality);
+
       return {
         companyId,
         agents: {
@@ -156,6 +172,14 @@ export function dashboardService(db: Db) {
           pausedProjects: budgetOverview.pausedProjectCount,
         },
         runActivity: Array.from(runActivity.values()),
+        briefingQuality: qualityTotal > 0 ? {
+          totalClassified: qualityTotal,
+          premium: qualityCounts.premium,
+          standard: qualityCounts.standard,
+          degraded: qualityCounts.degraded,
+          failed: qualityCounts.failed,
+          averageScore: Number(avgScore.toFixed(2)),
+        } : null,
       };
     },
   };

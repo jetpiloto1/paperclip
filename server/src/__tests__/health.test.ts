@@ -179,4 +179,133 @@ describe("GET /health", () => {
       },
     });
   });
+
+  describe("GET /health/deep", () => {
+    function mockDb(
+      executeMock: ReturnType<typeof vi.fn>,
+      fromMock: ReturnType<typeof vi.fn>,
+    ) {
+      return {
+        execute: executeMock,
+        select: vi.fn(() => ({ from: fromMock })),
+      } as unknown as Db;
+    }
+
+    it("returns 200 ok when all checks pass", async () => {
+      const execute = vi.fn()
+        .mockResolvedValueOnce([{ "?column?": 1 }])
+        .mockResolvedValueOnce([{ count: 5 }]);
+      const fromMock = vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([{ count: 3 }]),
+      }));
+      const db = mockDb(execute, fromMock);
+      const app = createApp(db);
+
+      const res = await request(app).get("/health/deep");
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        ok: true,
+        paperclip: "ok",
+        database: "ok",
+        migrations: "ok",
+        background: "ok",
+        timestamp: expect.any(String),
+      });
+    });
+
+    it("returns 503 when database check fails", async () => {
+      const execute = vi.fn()
+        .mockRejectedValueOnce(new Error("connect ECONNREFUSED"));
+      const fromMock = vi.fn();
+      const db = mockDb(execute, fromMock);
+      const app = createApp(db);
+
+      const res = await request(app).get("/health/deep");
+
+      expect(res.status).toBe(503);
+      expect(res.body).toMatchObject({
+        ok: false,
+        database: "failed",
+        paperclip: "ok",
+        timestamp: expect.any(String),
+      });
+    });
+
+    it("returns 503 when migrations check finds zero applied migrations", async () => {
+      const execute = vi.fn()
+        .mockResolvedValueOnce([{ "?column?": 1 }])
+        .mockResolvedValueOnce([{ count: 0 }]);
+      const fromMock = vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([{ count: 3 }]),
+      }));
+      const db = mockDb(execute, fromMock);
+      const app = createApp(db);
+
+      const res = await request(app).get("/health/deep");
+
+      expect(res.status).toBe(503);
+      expect(res.body).toMatchObject({
+        ok: false,
+        migrations: "failed",
+        migrations_detail: "no_applied_migrations",
+      });
+    });
+
+    it("returns 503 when migrations query throws", async () => {
+      const execute = vi.fn()
+        .mockResolvedValueOnce([{ "?column?": 1 }])
+        .mockRejectedValueOnce(new Error("relation not found"));
+      const fromMock = vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([{ count: 3 }]),
+      }));
+      const db = mockDb(execute, fromMock);
+      const app = createApp(db);
+
+      const res = await request(app).get("/health/deep");
+
+      expect(res.status).toBe(503);
+      expect(res.body).toMatchObject({
+        ok: false,
+        migrations: "failed",
+        migrations_detail: "migrations_check_error",
+      });
+    });
+
+    it("returns 503 when background check finds no recent heartbeat runs", async () => {
+      const execute = vi.fn()
+        .mockResolvedValueOnce([{ "?column?": 1 }])
+        .mockResolvedValueOnce([{ count: 5 }]);
+      const fromMock = vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([{ count: 0 }]),
+      }));
+      const db = mockDb(execute, fromMock);
+      const app = createApp(db);
+
+      const res = await request(app).get("/health/deep");
+
+      expect(res.status).toBe(503);
+      expect(res.body).toMatchObject({
+        ok: false,
+        background: "failed",
+        background_detail: "no_recent_heartbeat_runs",
+      });
+    });
+
+    it("returns 200 with no db when all components default to ok", async () => {
+      const app = createApp();
+
+      const res = await request(app).get("/health/deep");
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        ok: true,
+        paperclip: "ok",
+        database: "ok",
+        migrations: "ok",
+        background: "ok",
+        timestamp: expect.any(String),
+      });
+    });
+  });
 });

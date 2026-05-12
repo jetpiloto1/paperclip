@@ -93,6 +93,10 @@ There are two runtime modes Paperclip must support:
 
 Canonical mode design and command expectations live in `doc/DEPLOYMENT-MODES.md`.
 
+## Pricing & Growth
+
+Paperclip is MIT open-source and free. See [growth/pricing-framework.md](./growth/pricing-framework.md) for the low-cost pricing model, value proposition, and cost control strategy.
+
 ## Further Detail
 
 See [SPEC.md](./SPEC.md) for the full technical specification and [TASKS.md](./TASKS.md) for the task management data model.

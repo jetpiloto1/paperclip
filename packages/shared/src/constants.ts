@@ -978,6 +978,7 @@ export type PluginJobRunTrigger = (typeof PLUGIN_JOB_RUN_TRIGGERS)[number];
 /** Statuses for inbound webhook deliveries. */
 export const PLUGIN_WEBHOOK_DELIVERY_STATUSES = [
   "pending",
+  "processing",
   "success",
   "failed",
 ] as const;

@@ -2240,28 +2240,94 @@ export function pluginRoutes(
   // ===========================================================================
 
   /**
-   * POST /api/plugins/:pluginId/webhooks/:endpointKey
+   * Dispatch a webhook payload to the plugin worker asynchronously and update
+   * the delivery record out of band from the HTTP response path.
    *
-   * Receive an inbound webhook delivery for a plugin.
+   * This function is fire-and-forget from the caller's perspective. Errors are
+   * caught and persisted as failed delivery records so they remain auditable.
+   */
+  function dispatchWebhookAsync(
+    db: Db,
+    workerManager: PluginWorkerManager,
+    pluginId: string,
+    deliveryId: string,
+    endpointKey: string,
+    headers: Record<string, string | string[]>,
+    rawBody: string,
+    parsedBody: unknown,
+    requestId: string,
+    startedAt: Date,
+  ): void {
+    // Use void + catch to run out of band — never await in the caller.
+    void (async () => {
+      try {
+        // Mark as processing before dispatching
+        await db
+          .update(pluginWebhookDeliveries)
+          .set({ status: "processing" })
+          .where(eq(pluginWebhookDeliveries.id, deliveryId));
+
+        await workerManager.call(pluginId, "handleWebhook", {
+          endpointKey,
+          headers,
+          rawBody,
+          parsedBody,
+          requestId,
+        });
+
+        const finishedAt = new Date();
+        const durationMs = finishedAt.getTime() - startedAt.getTime();
+        await db
+          .update(pluginWebhookDeliveries)
+          .set({
+            status: "success",
+            durationMs,
+            finishedAt,
+          })
+          .where(eq(pluginWebhookDeliveries.id, deliveryId));
+      } catch (err) {
+        const finishedAt = new Date();
+        const durationMs = finishedAt.getTime() - startedAt.getTime();
+        const errorMessage = err instanceof Error ? err.message : String(err);
+
+        await db
+          .update(pluginWebhookDeliveries)
+          .set({
+            status: "failed",
+            durationMs,
+            error: errorMessage,
+            finishedAt,
+          })
+          .where(eq(pluginWebhookDeliveries.id, deliveryId));
+      }
+    })();
+  }
+
+  /**
+   * POST /plugins/:pluginId/webhooks/:endpointKey
    *
-   * This route is called by external systems (e.g. GitHub, Linear, Stripe) to
-   * deliver webhook payloads to a plugin. The host validates that:
-   * 1. The plugin exists and is in 'ready' state
+   * Receive an inbound webhook payload from an external system and dispatch it
+   * to the plugin worker via the `handleWebhook` RPC method **asynchronously**.
+   *
+   * The delivery is recorded immediately in the `plugin_webhook_deliveries` table
+   * with status `"pending"`, and the caller receives a **202 Accepted** response
+   * with the delivery ID. The actual worker dispatch and status update happen
+   * out of band via an in-process background promise, so slow or failing worker
+   * RPC calls never delay the webhook response.
+   *
+   * Prerequisites:
+   * 1. Webhook ingestion must be enabled (webhookDeps provided)
    * 2. The plugin declares the `webhooks.receive` capability
    * 3. The `endpointKey` matches a declared webhook in the manifest
-   *
-   * The delivery is recorded in the `plugin_webhook_deliveries` table and
-   * dispatched to the worker via the `handleWebhook` RPC method.
    *
    * **Note:** This route does NOT require board authentication — webhook
    * endpoints must be publicly accessible for external callers. Signature
    * verification is the plugin's responsibility.
    *
-   * Response: `{ deliveryId: string, status: string }`
+   * Response: `{ deliveryId: string, status: "accepted" }`
    * Errors:
    * - 404 if plugin not found or endpointKey not declared
    * - 400 if plugin is not in ready state or lacks webhooks.receive capability
-   * - 502 if the worker is unavailable or the RPC call fails
    */
   router.post("/plugins/:pluginId/webhooks/:endpointKey", async (req, res) => {
     if (!webhookDeps) {
@@ -2332,7 +2398,7 @@ export function pluginRoutes(
     const parsedBody = req.body as unknown;
     const payload = (req.body as Record<string, unknown> | undefined) ?? {};
 
-    // Step 6: Record the delivery in the database
+    // Step 6: Record the delivery in the database (synchronous — quick INSERT)
     const startedAt = new Date();
     const [delivery] = await db
       .insert(pluginWebhookDeliveries)
@@ -2346,54 +2412,25 @@ export function pluginRoutes(
       })
       .returning({ id: pluginWebhookDeliveries.id });
 
-    // Step 7: Dispatch to the worker via handleWebhook RPC
-    try {
-      await webhookDeps.workerManager.call(plugin.id, "handleWebhook", {
-        endpointKey,
-        headers: req.headers as Record<string, string | string[]>,
-        rawBody,
-        parsedBody,
-        requestId,
-      });
+    // Step 7: Respond immediately — caller gets 202 Accepted with delivery ID
+    res.status(202).json({
+      deliveryId: delivery.id,
+      status: "accepted",
+    });
 
-      // Step 8: Update delivery record to success
-      const finishedAt = new Date();
-      const durationMs = finishedAt.getTime() - startedAt.getTime();
-      await db
-        .update(pluginWebhookDeliveries)
-        .set({
-          status: "success",
-          durationMs,
-          finishedAt,
-        })
-        .where(eq(pluginWebhookDeliveries.id, delivery.id));
-
-      res.status(200).json({
-        deliveryId: delivery.id,
-        status: "success",
-      });
-    } catch (err) {
-      // Step 8 (error): Update delivery record to failed
-      const finishedAt = new Date();
-      const durationMs = finishedAt.getTime() - startedAt.getTime();
-      const errorMessage = err instanceof Error ? err.message : String(err);
-
-      await db
-        .update(pluginWebhookDeliveries)
-        .set({
-          status: "failed",
-          durationMs,
-          error: errorMessage,
-          finishedAt,
-        })
-        .where(eq(pluginWebhookDeliveries.id, delivery.id));
-
-      res.status(502).json({
-        deliveryId: delivery.id,
-        status: "failed",
-        error: errorMessage,
-      });
-    }
+    // Step 8: Dispatch to the worker asynchronously (out of band)
+    dispatchWebhookAsync(
+      db,
+      webhookDeps.workerManager,
+      plugin.id,
+      delivery.id,
+      endpointKey,
+      req.headers as Record<string, string | string[]>,
+      rawBody,
+      parsedBody,
+      requestId,
+      startedAt,
+    );
   });
 
   // ===========================================================================

@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   ensureOpenCodeModelConfiguredAndAvailable,
+  getLastSuccessfulModels,
   listOpenCodeModels,
+  preloadOpenCodeModels,
   requireOpenCodeModelId,
   resetOpenCodeModelsCacheForTests,
+  setLastSuccessfulModels,
 } from "./models.js";
 
 describe("openCode models", () => {
@@ -43,5 +46,41 @@ describe("openCode models", () => {
         model: "openai/gpt-5",
       }),
     ).rejects.toThrow("Failed to start command");
+  }, 15_000);
+
+  it("preloads models into cache at module load", async () => {
+    const models = getLastSuccessfulModels();
+    expect(models).not.toBeNull();
+    expect(Array.isArray(models)).toBe(true);
+    if (models) {
+      expect(models.length).toBeGreaterThan(0);
+      expect(models[0].id).toContain("/");
+    }
   });
+
+  it("falls back to last successful models when discovery fails after a successful run", async () => {
+    const previousModels = getLastSuccessfulModels();
+    expect(previousModels).not.toBeNull();
+
+    setLastSuccessfulModels([{ id: "openai/gpt-5", label: "openai/gpt-5" }]);
+
+    process.env.PAPERCLIP_OPENCODE_COMMAND = "__paperclip_missing_opencode_command__";
+
+    const models = await ensureOpenCodeModelConfiguredAndAvailable({
+      model: "openai/gpt-5",
+    });
+    expect(models).toEqual([{ id: "openai/gpt-5", label: "openai/gpt-5" }]);
+  }, 15_000);
+
+  it("still throws when discovery fails and last successful models don't include configured model", async () => {
+    setLastSuccessfulModels([{ id: "anthropic/claude-4", label: "anthropic/claude-4" }]);
+
+    process.env.PAPERCLIP_OPENCODE_COMMAND = "__paperclip_missing_opencode_command__";
+
+    await expect(
+      ensureOpenCodeModelConfiguredAndAvailable({
+        model: "openai/gpt-5",
+      }),
+    ).rejects.toThrow("Failed to start command");
+  }, 15_000);
 });

@@ -124,6 +124,7 @@ import { InlineEditor } from "@/components/InlineEditor";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { Identity } from "@/components/Identity";
 import { IssueReferencePill } from "@/components/IssueReferencePill";
+import { ChartCard } from "@/components/ActivityCharts";
 
 /* ------------------------------------------------------------------ */
 /*  Section wrapper                                                    */
@@ -789,6 +790,166 @@ export function DesignGuide() {
             <MetricCard icon={DollarSign} value="$1,234" label="Monthly Cost" description="Under budget" />
             <MetricCard icon={Zap} value="99.9%" label="Uptime" />
           </div>
+        </SubSection>
+      </Section>
+
+      {/* ============================================================ */}
+      {/*  QA SCORECARD WIDGETS                                         */}
+      {/* ============================================================ */}
+      <Section title="QA Scorecard Widgets">
+        <SubSection title="ChartCard (wrapper)">
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <ChartCard title="Metric Gauges" subtitle="Key indicators">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { label: "Premium %", value: 72, color: "#10b981" },
+                  { label: "Issues %", value: 8, color: "#ef4444" },
+                  { label: "Avg Score", value: 84, color: "#3b82f6" },
+                  { label: "Avg Rating", value: 3.8, color: "#8b5cf6" },
+                ].map((g) => {
+                  const circumference = 2 * Math.PI * 28;
+                  const offset = circumference - (g.value / 100) * circumference;
+                  return (
+                    <div key={g.label} className="flex flex-col items-center gap-1">
+                      <svg width="72" height="72" viewBox="0 0 72 72">
+                        <circle cx="36" cy="36" r="28" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
+                        <circle cx="36" cy="36" r="28" fill="none" stroke={g.color} strokeWidth="6"
+                          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" transform="rotate(-90 36 36)" />
+                        <text x="36" y="36" textAnchor="middle" dominantBaseline="central"
+                          className="text-xs font-semibold fill-foreground tabular-nums">{g.value}%</text>
+                      </svg>
+                      <span className="text-[10px] text-muted-foreground text-center">{g.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </ChartCard>
+            <ChartCard title="Quality Tier Distribution" subtitle="Rolling 7 days">
+              <div className="flex flex-col items-center gap-3">
+                <svg width="120" height="120" viewBox="0 0 100 100" className="-rotate-90">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--muted))" strokeWidth="12" />
+                  {[
+                    { label: "premium", pct: 55, color: "#10b981" },
+                    { label: "standard", pct: 25, color: "#3b82f6" },
+                    { label: "degraded", pct: 12, color: "#f59e0b" },
+                    { label: "failed", pct: 8, color: "#ef4444" },
+                  ].reduce((acc, seg) => {
+                    const circumference = 2 * Math.PI * 40;
+                    const segment = (seg.pct / 100) * circumference;
+                    const dash = `${segment} ${circumference - segment}`;
+                    const offset = acc.reduce((s, x) => s + (x.pct / 100) * circumference, 0);
+                    acc.push({ ...seg, dash, offset });
+                    return acc;
+                  }, [] as { label: string; pct: number; color: string; dash: string; offset: number }[]).map((seg) => (
+                    <circle key={seg.label} cx="50" cy="50" r="40" fill="none" stroke={seg.color}
+                      strokeWidth="12" strokeDasharray={seg.dash} strokeDashoffset={-seg.offset} strokeLinecap="butt" />
+                  ))}
+                </svg>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 justify-center">
+                  {[["premium", "#10b981"], ["standard", "#3b82f6"], ["degraded", "#f59e0b"], ["failed", "#ef4444"]].map(([label, color]) => (
+                    <span key={label} className="flex items-center gap-1.5 text-xs">
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                      <span className="capitalize text-muted-foreground">{label}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </ChartCard>
+            <ChartCard title="Escalations" subtitle="Latest events">
+              <div className="space-y-2">
+                <div className="flex gap-3 flex-wrap">
+                  {[["critical", 3], ["high", 5], ["medium", 2]].map(([level, count]) => (
+                    <div key={level} className="flex items-center gap-1.5 text-xs">
+                      <span className={`h-2 w-2 rounded-full ${
+                        level === "critical" ? "bg-red-400" :
+                        level === "high" ? "bg-orange-400" : "bg-yellow-400"
+                      }`} />
+                      <span className="capitalize text-muted-foreground">{level}</span>
+                      <span className="font-medium tabular-nums">{count}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  {[
+                    { reason: "Missing weather data for departure", level: "critical" },
+                    { reason: "NOTAM inconsistency detected", level: "high" },
+                    { reason: "Fuel calculation discrepancy", level: "medium" },
+                  ].map((e, i) => (
+                    <div key={i} className={`flex items-start gap-2 px-2 py-1.5 rounded text-xs border ${
+                      e.level === "critical" ? "bg-red-500/10 border-red-500/20" :
+                      e.level === "high" ? "bg-orange-500/10 border-orange-500/20" :
+                      "bg-yellow-500/10 border-yellow-500/20"
+                    }`}>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{e.reason}</p>
+                        <p className="text-muted-foreground text-[10px]">abc12345 · {new Date().toLocaleDateString()}</p>
+                      </div>
+                      <span className="capitalize text-muted-foreground shrink-0 text-[10px]">pending</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </ChartCard>
+            <ChartCard title="Gate Pass Rates" subtitle="Per-gate pass/fail">
+              <div className="space-y-2">
+                {[
+                  { gate: "A1 Weather Check", passed: 142, failed: 8 },
+                  { gate: "A2 Times Match", passed: 138, failed: 12 },
+                  { gate: "B9 No Placeholder", passed: 145, failed: 5 },
+                  { gate: "D2 Delivery Window", passed: 140, failed: 10 },
+                ].map((g) => {
+                  const total = g.passed + g.failed;
+                  const rate = (g.passed / total) * 100;
+                  return (
+                    <div key={g.gate} className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground w-22 shrink-0 truncate">{g.gate}</span>
+                      <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden flex">
+                        <div className={`h-full rounded-l-full ${rate >= 95 ? "bg-emerald-500" : rate >= 85 ? "bg-amber-500" : "bg-red-500"}`}
+                          style={{ width: `${rate}%` }} />
+                        <div className="h-full bg-red-500/40" style={{ width: `${100 - rate}%` }} />
+                      </div>
+                      <span className="text-[10px] font-medium tabular-nums w-8 text-right">{Math.round(rate)}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </ChartCard>
+          </div>
+        </SubSection>
+
+        <SubSection title="Components (API-connected)">
+          <p className="text-xs text-muted-foreground">
+            The following six components render live data and are used on the QA Scorecard dashboard page:
+          </p>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono text-[10px]">QAScorecardMetricGauges</Badge>
+              <span className="text-xs text-muted-foreground">4 SVG ring gauges (Premium %, Issues %, Avg Score, Avg Rating)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono text-[10px]">QAScorecardDonutChart</Badge>
+              <span className="text-xs text-muted-foreground">Donut chart with quality tier distribution (premium/standard/degraded/failed)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono text-[10px]">QAScorecardEscalationsPanel</Badge>
+              <span className="text-xs text-muted-foreground">Escalation list with severity icons and counts</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono text-[10px]">QAScorecardCrewLookup</Badge>
+              <span className="text-xs text-muted-foreground">Crew member search with per-person score bars and trend</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono text-[10px]">QAScorecardFeedbackTrends</Badge>
+              <span className="text-xs text-muted-foreground">Stacked bar chart of feedback (Yes/Somewhat/No) over 30 days</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono text-[10px]">QAScorecardGatePassRates</Badge>
+              <span className="text-xs text-muted-foreground">Pass/fail rate bars per quality gate</span>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            See <code className="text-xs font-mono bg-muted px-1 rounded">/dashboard/qa-scorecard</code> for the live dashboard.
+          </p>
         </SubSection>
       </Section>
 

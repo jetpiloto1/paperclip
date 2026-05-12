@@ -7,7 +7,11 @@ import type { DeploymentExposure, DeploymentMode } from "@paperclipai/shared";
 import { readPersistedDevServerStatus, toDevServerHealthStatus } from "../dev-server-status.js";
 import { logger } from "../middleware/logger.js";
 import { instanceSettingsService } from "../services/instance-settings.js";
+import type { PluginWorkerManager } from "../services/plugin-worker-manager.js";
+import type { StorageService } from "../storage/types.js";
 import { serverVersion } from "../version.js";
+
+const serverStartTime = Date.now();
 
 function shouldExposeFullHealthDetails(
   actorType: "none" | "board" | "agent" | null | undefined,
@@ -35,6 +39,8 @@ export function healthRoutes(
     deploymentExposure: DeploymentExposure;
     authReady: boolean;
     companyDeletionEnabled: boolean;
+    storageService?: StorageService;
+    pluginWorkerManager?: PluginWorkerManager;
   } = {
     deploymentMode: "local_trusted",
     deploymentExposure: "private",
@@ -143,6 +149,89 @@ export function healthRoutes(
       },
       ...(devServer ? { devServer } : {}),
     });
+  });
+
+  router.get("/deep", async (req, res) => {
+    let anyFailed = false;
+
+    const paperclip: "ok" | "failed" = "ok";
+
+    let database: "ok" | "failed" = "ok";
+
+    if (db) {
+      try {
+        await db.execute(sql`SELECT 1`);
+      } catch (error) {
+        logger.warn({ err: error }, "Deep health check database probe failed");
+        database = "failed";
+        anyFailed = true;
+      }
+    }
+
+    let migrations: "ok" | "failed" = "ok";
+    let migrationsDetail: string | undefined;
+
+    if (db) {
+      try {
+        const result = await db.execute(
+          sql`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`,
+        );
+        const migrationRow = Array.isArray(result) ? (result[0] as { count?: number }) : undefined;
+        const count = Number(migrationRow?.count ?? 0);
+        if (count === 0) {
+          migrations = "failed";
+          migrationsDetail = "no_applied_migrations";
+          anyFailed = true;
+        }
+      } catch (error) {
+        logger.warn({ err: error }, "Deep health check migrations probe failed");
+        migrations = "failed";
+        migrationsDetail = "migrations_check_error";
+        anyFailed = true;
+      }
+    }
+
+    let background: "ok" | "failed" = "ok";
+    let backgroundDetail: string | undefined;
+
+    if (db) {
+      try {
+        const recentWindow = new Date(Date.now() - 300_000);
+        const recentRun = await db
+          .select({ count: count() })
+          .from(heartbeatRuns)
+          .where(gt(heartbeatRuns.createdAt, recentWindow))
+          .then((rows) => Number(rows[0]?.count ?? 0));
+        if (recentRun === 0) {
+          background = "failed";
+          backgroundDetail = "no_recent_heartbeat_runs";
+          anyFailed = true;
+        }
+      } catch (error) {
+        logger.warn({ err: error }, "Deep health check background probe failed");
+        background = "failed";
+        backgroundDetail = "background_check_error";
+        anyFailed = true;
+      }
+    }
+
+    const responseBody: Record<string, unknown> = {
+      ok: !anyFailed,
+      paperclip,
+      database,
+      migrations,
+      background,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (migrationsDetail) responseBody.migrations_detail = migrationsDetail;
+    if (backgroundDetail) responseBody.background_detail = backgroundDetail;
+
+    if (anyFailed) {
+      res.status(503);
+    }
+
+    res.json(responseBody);
   });
 
   return router;
