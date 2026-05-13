@@ -30,7 +30,7 @@ Two-stage waitlist system: users sign up for beta access, earn priority by refer
 ## Stage 2: Referral Mechanics
 
 ### How It Works
-- Every signup receives a **unique referral link**: `app.crewbrie.fly.dev/join?ref={code}`
+- Every signup receives a **unique referral link**: `app.crewbrie.com/join?ref={code}`
 - Referrer earns **+5 queue positions** per successful referral
 - Referral is "successful" when the referred user completes signup with a valid email
 
@@ -42,7 +42,7 @@ Two-stage waitlist system: users sign up for beta access, earn priority by refer
 | Insider | 5+ | Priority access + beta tester badge + direct feedback channel |
 
 ### Referral Dashboard (in confirmation email)
-- "Your referral link: `app.crewbrie.fly.dev/join?ref={code}`"
+- "Your referral link: `app.crewbrie.com/join?ref={code}`"
 - "Referred: 0 | Priority at 3 | Insider at 5"
 - "Share on LinkedIn | Share via Email | Copy Link"
 

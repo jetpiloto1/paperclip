@@ -82,4 +82,4 @@ The question is not whether HTML briefings will replace PDFs. They will — beca
 
 ---
 
-*CrewBrief delivers HTML-first briefings to Part 91/135 operators. [Join the beta waitlist](https://app.crewbrie.fly.dev).*
+*CrewBrief delivers HTML-first briefings to Part 91/135 operators. [Join the beta waitlist](https://app.crewbrie.com).*

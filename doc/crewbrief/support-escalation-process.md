@@ -8,7 +8,7 @@
 
 | Channel | Address | Best For |
 |---|---|---|
-| Email | help@crewbrie.fly.dev | All inquiries |
+| Email | help@crewbrie.com | All inquiries |
 | In-app | Help menu → Contact (when available) | Urgent issues |
 | Feedback | In-app → Feedback (when available) | Feature requests, suggestions |
 

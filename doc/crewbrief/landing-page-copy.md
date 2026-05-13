@@ -1,9 +1,9 @@
-# Landing Page Copy — app.crewbrie.fly.dev
+# Landing Page Copy — CrewBrief (Hostinger deployment)
 
 ## Meta
 - **Title**: CrewBrief — Your flight, briefed.
 - **Description**: Premium aviation briefings — weather, NOTAMs, route data, fuel calculations, and crew notices — delivered automatically before every duty.
-- **Canonical URL**: https://app.crewbrie.fly.dev
+- **Canonical URL**: https://app.crewbrie.com
 
 ---
 
@@ -113,5 +113,5 @@ Show a screenshot or mockup of the HTML briefing. Key features to call out:
 - Product: [Sample Briefing](/sample-briefing) · [Pricing](#pricing-section) · [FAQ](/faq)
 - Company: [About](/about) · [Blog](/blog)
 - Legal: [Privacy Policy](/privacy) · [Terms](/terms)
-- Contact: help@crewbrie.fly.dev
+- Contact: help@crewbrie.com
 - © 2026 CrewBrief Operations
