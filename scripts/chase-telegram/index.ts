@@ -44,6 +44,9 @@ interface PaperclipIssue {
   status: string;
   priority: string;
   assigneeAgentId?: string | null;
+  description?: string;
+  blockedBy?: Array<{ id: string; identifier: string; title?: string; status: string }>;
+  blocks?: Array<{ id: string; identifier: string; title?: string; status: string }>;
 }
 
 interface PaperclipApproval {
@@ -354,19 +357,61 @@ async function handleDetailQuery(identifier: string): Promise<QueryResult> {
   if (!match) {
     return { text: `Could not find issue <code>${escapeHtml(resolvedId)}</code>. Check the identifier and try again.` };
   }
-  const issue = await paperclipGet<PaperclipIssue & { description?: string }>(
+
+  // Fetch full issue details including blockers and description
+  const issue = await paperclipGet<PaperclipIssue>(
     `/api/issues/${match.id}`,
   );
-  const desc = issue.description
-    ? `\n\n${escapeHtml(issue.description.slice(0, 500))}`
-    : "";
-  return {
-    text: [
-      `${issueLink(issue.identifier)} — ${escapeHtml(issue.title)}`,
-      `Status: ${issue.status}  |  Priority: ${issue.priority}`,
-      desc,
-    ].join("\n"),
-  };
+
+  const lines: string[] = [];
+
+  // Header: ID + title
+  lines.push(`<b>${issueLink(issue.identifier)} — ${escapeHtml(issue.title)}</b>`);
+
+  // Status and priority
+  lines.push(`Status: <code>${issue.status}</code>  |  Priority: <code>${issue.priority}</code>`);
+
+  // Short plain-English summary from description
+  if (issue.description) {
+    const summary = issue.description
+      .replace(/<[^>]+>/g, "") // strip any HTML
+      .split("\n")
+      .map((l: string) => l.trim())
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(" ")
+      .slice(0, 300);
+    if (summary) {
+      lines.push("");
+      lines.push(escapeHtml(summary));
+    }
+  }
+
+  // Blocker info if available
+  if (issue.blockedBy && issue.blockedBy.length > 0) {
+    lines.push("");
+    for (const blocker of issue.blockedBy) {
+      lines.push(`Blocked by: ${issueLink(blocker.identifier, blocker.title || blocker.identifier)}`);
+    }
+  }
+
+  // Action suggestion
+  lines.push("");
+  if (issue.status === "blocked") {
+    lines.push("<i>Check who owns the blocker above or reassign if stale.</i>");
+  } else if (issue.status === "in_review") {
+    lines.push("<i>This issue is awaiting review.</i>");
+  } else if (issue.status === "todo") {
+    lines.push("<i>Ready to be picked up.</i>");
+  } else if (issue.status === "in_progress") {
+    lines.push("<i>Work is in progress.</i>");
+  }
+
+  // Direct Paperclip link
+  lines.push("");
+  lines.push(issueLink(issue.identifier, "Open in Paperclip →"));
+
+  return { text: lines.join("\n") };
 }
 
 async function handleSearchQuery(query: string): Promise<QueryResult> {
@@ -440,19 +485,80 @@ async function handleStart(): Promise<QueryResult> {
   };
 }
 
-async function handleGreeting(): Promise<QueryResult> {
+async function handleGreeting(firstName?: string): Promise<QueryResult> {
+  const name = firstName ?? "there";
   return {
-    text: "Chase here. What do you need from Paperclip? Try <code>/help</code> to see what I can do.",
+    text: `Hello, ${escapeHtml(name)}. What can I help you with?`,
   };
 }
 
-function routeQuery(text: string): () => Promise<QueryResult> {
+// ─── Aviation Weather ─────────────────────────────────────────────────────────
+
+const AVIATION_WEATHER_BASE = "https://aviationweather.gov/api/data";
+
+async function fetchAviationWeather(
+  endpoint: string,
+  station: string,
+): Promise<string> {
+  const url =
+    `${AVIATION_WEATHER_BASE}/${endpoint}?ids=${encodeURIComponent(station)}&format=raw`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Aviation weather API returned ${res.status}`);
+  }
+  const text = await res.text();
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new Error(
+      `No weather data found for station "${escapeHtml(station)}". Check the airport code and try again.`,
+    );
+  }
+  return trimmed;
+}
+
+async function handleMetarQuery(station: string): Promise<QueryResult> {
+  try {
+    const raw = await fetchAviationWeather("metar", station);
+    return {
+      text: [
+        `<b>METAR for ${escapeHtml(station.toUpperCase())}</b>`,
+        "",
+        `<code>${escapeHtml(raw)}</code>`,
+      ].join("\n"),
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      text: `Unable to fetch METAR for <code>${escapeHtml(station)}</code>: ${escapeHtml(message)}`,
+    };
+  }
+}
+
+async function handleTafQuery(station: string): Promise<QueryResult> {
+  try {
+    const raw = await fetchAviationWeather("taf", station);
+    return {
+      text: [
+        `<b>TAF for ${escapeHtml(station.toUpperCase())}</b>`,
+        "",
+        `<code>${escapeHtml(raw)}</code>`,
+      ].join("\n"),
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      text: `Unable to fetch TAF for <code>${escapeHtml(station)}</code>: ${escapeHtml(message)}`,
+    };
+  }
+}
+
+function routeQuery(text: string, firstName?: string): () => Promise<QueryResult> {
   const trimmed = text.trim();
 
   // Greetings get a conversational response
   if (/^\/(start)\b/i.test(trimmed)) return handleStart;
-  if (/^(hello|hi|hey|yo|sup|good\s*(morning|afternoon|evening)|what's up|howdy)\b/i.test(trimmed)) return handleGreeting;
-  if (/^chase[,!?.]?$/i.test(trimmed)) return handleGreeting;
+  if (/^(hello|hi|hey|yo|sup|good\s*(morning|afternoon|evening)|what's up|howdy)\b/i.test(trimmed)) return () => handleGreeting(firstName);
+  if (/^chase[,!?.]?$/i.test(trimmed)) return () => handleGreeting(firstName);
   if (/^\/(help|commands)\b/i.test(trimmed)) return handleHelp;
   if (/^\/(overview|status|company)\b/i.test(trimmed)) return handleOverviewQuery;
   if (/^\/(blocked|stuck|waiting)\b/i.test(trimmed)) return handleBlockedQuery;
@@ -470,6 +576,20 @@ function routeQuery(text: string): () => Promise<QueryResult> {
     const query = searchMatch[1]!.trim();
     return () => handleSearchQuery(query);
   }
+
+  // Natural language → Paperclip API queries (smart routing)
+  if (/what.*blocked|show.*blocked|blocked.*issues?|stuck|waiting.?on/i.test(trimmed)) return handleBlockedQuery;
+  if (/pending.*(approval|review)|what.*need.*approv|show.*approv/i.test(trimmed)) return handleApprovalsQuery;
+  if (/who.*(agent|team|work|member)|list.*agent|show.*agent|agents?\b|team/i.test(trimmed) && !trimmed.startsWith("/")) return handleAgentsQuery;
+  if (/company.*(overview|status)|how.*company|status.*company/i.test(trimmed)) return handleOverviewQuery;
+  if (/detail.*(issue|CRE|task|ticket)|show.*issue|what.*(?:is|about)\s+(CRE-\d+)/i.test(trimmed)) {
+    const idMatch = trimmed.match(/CRE[-\s]?\d+/i);
+    if (idMatch) {
+      const identifier = idMatch[0].replace(/\s+/, "-");
+      return () => handleDetailQuery(identifier);
+    }
+  }
+  if (/\b(good\s*(morning|afternoon|evening)|howdy)\b/i.test(trimmed)) return () => handleGreeting(firstName);
 
   // Free text → AI-powered response
   return () => generateReply(trimmed);
@@ -491,9 +611,10 @@ async function handleWebhook(update: TelegramUpdate): Promise<Response> {
 
   const chatId = msg.chat.id;
   const text = msg.text;
+  const firstName = msg.from?.first_name;
 
   // Determine if this is an AI-powered query (free text)
-  const handler = routeQuery(text);
+  const handler = routeQuery(text, firstName);
   const isAiQuery = handler.toString().includes("generateReply");
 
   // Only show loading message for AI-powered queries that may take time
