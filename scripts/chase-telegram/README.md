@@ -7,7 +7,6 @@ Paperclip API using Chase's credentials and personality.
 Telegram → Webhook → Edge Function → Paperclip API → Formatted Response
              ↑                                         |
              └──────── Response back via Telegram ←─────┘
-```
 
 ## Architecture
 
@@ -15,6 +14,26 @@ The edge function is a thin front-end — it does not run the Chase agent itself
 It uses Chase's Paperclip API key to query live data, formats the response using
 Chase's defined personality (warm, efficient dispatcher tone), and replies via
 Telegram.
+
+### Tool-Router Architecture
+
+Incoming messages are routed through a declarative tool-router pattern:
+
+```
+Telegram message → routeQuery(text) → Tool[] match → handler → Telegram reply
+                                      ↓
+                          AI fallback (free text)
+```
+
+Each tool is defined as a `Tool` object with:
+- **`name`** — unique identifier
+- **`description`** — human-readable summary
+- **`pattern`** — RegExp to match against the message text
+- **`exec`** — handler function that produces the response
+- **`requiresAi`** — flag for showing a loading indicator
+
+To add a new command, push a new `Tool` entry to the `tools` array — no router
+function changes needed.
 
 ## Environment Variables
 
