@@ -56,3 +56,8 @@ tests/release-smoke/test-results/
 tests/release-smoke/playwright-report/
 .superset/
 .claude/worktrees/
+
+# Local migration/runtime files
+.env.backup-*
+$AGENT_HOME/
+.issues/

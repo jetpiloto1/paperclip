@@ -302,6 +302,7 @@ const dashboard: DashboardSummary = {
     pausedProjects: 0,
   },
   runActivity: [],
+  briefingQuality: null,
 };
 
 describe("inbox helpers", () => {
