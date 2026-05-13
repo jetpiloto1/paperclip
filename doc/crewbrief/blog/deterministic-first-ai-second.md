@@ -65,4 +65,4 @@ Deterministic where it matters. AI where it helps. That's the philosophy.
 
 ---
 
-*CrewBrief is a briefing automation platform for Part 91/135 operators. [Join the beta waitlist](https://app.crewbrie.com).*
+*CrewBrief is a briefing automation platform for Part 91/135 operators. [Join the beta waitlist](https://crewbrief.avva.aero).*

@@ -16,8 +16,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 const DEFAULT_API_URL = __DEV__
   ? Platform.OS === "android"
-    ? "http://10.0.2.2:3000"
-    : "http://localhost:3000"
+    ? "http://10.0.2.2:3100"
+    : "http://localhost:3100"
   : "https://api.crewbrief.app";
 
 export function HomeScreen({ navigation }: Props) {
@@ -47,7 +47,7 @@ export function HomeScreen({ navigation }: Props) {
             style={styles.input}
             value={apiUrl}
             onChangeText={setApiUrl}
-            placeholder="http://localhost:3000"
+            placeholder="http://localhost:3100"
             placeholderTextColor="#9ca3af"
             autoCapitalize="none"
             autoCorrect={false}

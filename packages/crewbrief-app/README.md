@@ -84,19 +84,19 @@ eas build --platform ios --profile development
 3. Open the CrewBrief app
 4. Set the API URL to your running backend (e.g. `https://api.crewbrief.app`)
 
-For local development, make sure your dev server is accessible from the iPhone (same WiFi network, use your Mac's LAN IP like `http://192.168.1.100:3000`).
+For local development, make sure your dev server is accessible from the iPhone (same WiFi network, use your Mac's LAN IP like `http://192.168.1.100:3100`).
 
 ## Configuration
 
 ### API URL
 
-The app uses `http://localhost:3000` in dev mode by default. On a physical iPhone, change this to your machine's LAN IP or production URL from the Home screen.
+The app uses `http://localhost:3100` in dev mode by default. On a physical iPhone, change this to your machine's LAN IP or production URL from the Home screen.
 
 ### Environment
 
 | Key | Default (Dev) | Production |
 |-----|--------------|------------|
-| API URL | `http://localhost:3000` | `https://api.crewbrief.app` |
+| API URL | `http://localhost:3100` | `https://api.crewbrief.app` |
 
 ## App Architecture
 

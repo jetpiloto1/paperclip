@@ -13,7 +13,7 @@ Recruit 10–20 operators from target segments for the private beta (Weeks 1–4
 - Corporate flight departments
 - Fractional providers
 - **Why**: High briefing volume, multiple crew per aircraft, fragmented workflows
-- **Examples**: boutiqu charter firms, regional air taxi operators, corporate flight departments at F500 companies
+- **Examples**: boutique charter firms, regional air taxi operators, corporate flight departments at F500 companies
 
 ### Secondary: Part 91 Operators
 - High-net-worth private flight departments

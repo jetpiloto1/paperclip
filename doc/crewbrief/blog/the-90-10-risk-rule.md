@@ -103,4 +103,4 @@ The 90/10 principle — automate the computable, ask the uncomputable — applie
 
 ---
 
-*CrewBrief's automated FRAT is available now for beta operators. [Join the waitlist](https://app.crewbrie.com).*
+*CrewBrief's automated FRAT is available now for beta operators. [Join the waitlist](https://crewbrief.avva.aero).*

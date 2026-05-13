@@ -8,7 +8,7 @@
 
 | Channel | Address | Best For |
 |---|---|---|
-| Email | help@crewbrie.com | All inquiries |
+| Email | help@crewbrief.com | All inquiries |
 | In-app | Help menu → Contact (when available) | Urgent issues |
 | Feedback | In-app → Feedback (when available) | Feature requests, suggestions |
 

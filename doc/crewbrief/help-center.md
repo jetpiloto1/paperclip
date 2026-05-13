@@ -30,7 +30,7 @@ CrewBrief delivers premium aviation briefings — weather, NOTAMs, route data, a
 
 ### Account Setup
 
-1. Download the CrewBrief app or visit app.crewbrie.com
+1. Download the CrewBrief app or visit crewbrief.avva.aero
 2. Tap "Sign Up" and enter your email
 3. Verify your email address
 4. Complete your profile (airline, aircraft type, home base)
@@ -139,7 +139,7 @@ CrewBrief stores:
 - Flight schedule (for briefing generation)
 - Briefing delivery history
 
-We do NOT share your data with third parties. Full privacy policy at crewbrie.com/privacy
+We do NOT share your data with third parties. Full privacy policy at crewbrief.avva.aero/privacy
 
 ---
 
@@ -180,7 +180,7 @@ We do NOT share your data with third parties. Full privacy policy at crewbrie.co
 ### General
 
 **Q: Is CrewBrief free?**
-A: CrewBrief is currently in beta — join the waitlist at app.crewbrie.com for free access. Post-launch, CrewBrief is available as a $9.99 one-time purchase or $4.99/month subscription. See [Pricing](#pricing) for details.
+A: CrewBrief is currently in beta — join the waitlist at crewbrief.avva.aero for free access. Post-launch, CrewBrief is available as a $9.99 one-time purchase or $4.99/month subscription. See [Pricing](#pricing) for details.
 
 **Q: Can I use CrewBrief internationally?**
 A: Yes — coverage includes most major airports worldwide.
@@ -208,13 +208,13 @@ A: Profile → Account → Email → Verify new address.
 ### Billing
 
 **Q: How do I switch between one-time and subscription?**
-A: Contact support@crewbrie.com to switch between one-time purchase and subscription billing. See [Pricing](#pricing) for plan details.
+A: Contact support@crewbrief.com to switch between one-time purchase and subscription billing. See [Pricing](#pricing) for plan details.
 
 **Q: Can I cancel anytime?**
 A: Yes — cancel from Profile → Subscription. Access continues until end of billing period.
 
 **Q: Do you offer team/airline pricing?**
-A: Yes — contact support@crewbrie.com for custom team and airline pricing.
+A: Yes — contact support@crewbrief.com for custom team and airline pricing.
 
 **Q: What payment methods do you accept?**
 A: Credit and debit cards (Visa, Mastercard, Amex). Enterprise customers can request invoice billing.
@@ -228,7 +228,7 @@ A: Not currently — CrewBrief is priced at $9.99 one-time or $4.99/month. Beta 
 
 | Channel | Contact | Best For |
 |---|---|---|
-| Email | help@crewbrie.com | All inquiries |
+| Email | help@crewbrief.com | All inquiries |
 | In-app | Help → Contact Support | Urgent issues |
 | Feedback | Help → Send Feedback | Feature requests |
 

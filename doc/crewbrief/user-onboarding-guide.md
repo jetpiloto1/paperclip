@@ -142,7 +142,7 @@ A: Briefings are cached on receipt; view previously delivered briefings offline.
 ## 8. Feedback & Support
 
 - In-app: Help menu → Contact Support
-- Email: help@crewbrie.com
+- Email: help@crewbrief.com
 - Response SLA: P1 (critical) < 15 min, P2 < 1 hr, P3 < 24 hrs
 - Feature requests: In-app → Feedback → Feature Request
 
