@@ -12,7 +12,7 @@ const MODELS_CACHE_TTL_MS = 300_000;
 const MODELS_DISCOVERY_TIMEOUT_MS = 30_000;
 const MODELS_DISCOVERY_MAX_TIMEOUT_MS = 120_000;
 
-function resolveOpenCodeCommand(input: unknown): string {
+export function resolveOpenCodeCommand(input: unknown): string {
   const envOverride =
     typeof process.env.PAPERCLIP_OPENCODE_COMMAND === "string" &&
     process.env.PAPERCLIP_OPENCODE_COMMAND.trim().length > 0
