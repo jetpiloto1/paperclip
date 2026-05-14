@@ -9,14 +9,22 @@ const PAPERCLIP_API_URL = process.env.PAPERCLIP_API_URL;
 const PAPERCLIP_API_KEY = process.env.PAPERCLIP_API_KEY;
 const COMPANY_ID = process.env.PAPERCLIP_COMPANY_ID;
 
-const COOLDOWN_MS = 30 * 60 * 1000;
 const MIN_INTERVAL_MS = 1100;
+const MAX_BUTTONS_PER_GROUP = 20;
+const MAX_MESSAGE_LENGTH = 3800;
+const MAX_RETRY_AFTER_MS = 30000;
+const DRY_RUN = process.env.TELEGRAM_ALERTS_DRY_RUN === "true";
 const STATE_DIR = process.env.TELEGRAM_ALERT_STATE_DIR || "/tmp/telegram-alert";
 const STATE_FILE = join(STATE_DIR, "state.json");
 const AUDIT_LOG = join(STATE_DIR, "audit.log");
 
 interface AlertState {
   alertedItems: Record<string, number>;
+}
+
+interface FetchResult {
+  items: AlertItem[];
+  ok: boolean;
 }
 
 interface AlertItem {
@@ -81,9 +89,7 @@ function tokenSafe(str: string): string {
 }
 
 function shouldAlert(state: AlertState, itemId: string): boolean {
-  const lastAlerted = state.alertedItems[itemId];
-  if (!lastAlerted) return true;
-  return Date.now() - lastAlerted > COOLDOWN_MS;
+  return !state.alertedItems[itemId];
 }
 
 function markAlerted(state: AlertState, itemId: string): void {
@@ -104,42 +110,116 @@ async function apiGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function escapeMarkdown(text: string): string {
-  return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, "\\$1");
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function sendTelegram(item: AlertItem): Promise<boolean> {
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function linkifyIssueIds(text: string): string {
+  return text.replace(/\b([A-Z]{2,}-\d+)\b/g, (_match, id) => {
+    return `<a href="${makeLink(id)}">${id}</a>`;
+  });
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  blocked: "\u{1F534} BLOCKED TASK",
+  approval_needed: "\u2705 APPROVAL NEEDED",
+  question_for_jeff: "\u2753 QUESTION FOR YOU",
+  critical_production: "\u26A0\uFE0F CRITICAL ISSUE",
+};
+
+const CATEGORY_HEADERS: Record<string, string> = {
+  blocked: "\u{1F534} BLOCKED TASKS",
+  approval_needed: "\u2705 APPROVALS NEEDED",
+  question_for_jeff: "\u2753 QUESTIONS FOR YOU",
+  critical_production: "\u26A0\uFE0F CRITICAL ISSUES",
+};
+
+function getButtonLabel(item: AlertItem): string {
+  switch (item.category) {
+    case "blocked":
+      return `\u{1F513} Open ${item.identifier}`;
+    case "approval_needed":
+      return `\u2705 Review Approval`;
+    case "question_for_jeff":
+      return `\u{1F4AC} Answer on ${item.identifier}`;
+    case "critical_production":
+      return `\u{1F525} View ${item.identifier}`;
+    default:
+      return `Open ${item.identifier}`;
+  }
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  blocked: "Blocked",
+  approval_needed: "Awaiting Approval",
+  question_for_jeff: "Awaiting Response",
+  critical_production: "Critical",
+};
+
+async function sendTelegram(items: AlertItem[]): Promise<boolean> {
   if (!BOT_TOKEN || !CHAT_ID) {
     auditLog(`SKIP no BOT_TOKEN/CHAT_ID configured`);
     return false;
   }
 
-  const headlineMap: Record<string, string> = {
-    blocked: "\u{1F534} BLOCKED TASK",
-    approval_needed: "\u2705 APPROVAL NEEDED",
-    question_for_jeff: "\u2753 QUESTION FOR YOU",
-    critical_production: "\u26A0\uFE0F CRITICAL ISSUE",
-  };
+  if (DRY_RUN) {
+    const labels = items.map((i) => i.identifier).join(", ");
+    auditLog(`DRY_RUN ${items[0].category} group [${labels}] would send ${items.length} item(s)`);
+    return true;
+  }
 
-  const text = [
-    `*${headlineMap[item.category]}*`,
-    ``,
-    `${item.identifier} \u2014 ${escapeMarkdown(item.title)}`,
-    item.explanation ? escapeMarkdown(item.explanation) : "",
-    ``,
-    `*What you can do:*`,
-    item.actionText ? escapeMarkdown(item.actionText) : "",
-    ``,
-    item.link,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const category = items[0].category;
+  const headline = items.length === 1
+    ? CATEGORY_LABELS[category]
+    : `${CATEGORY_HEADERS[category]} (${items.length})`;
 
-  const body = {
+  const lines: string[] = [
+    `<b>${escapeHtml(headline)}</b>`,
+    ``,
+  ];
+
+  for (const [idx, item] of items.entries()) {
+    const num = items.length > 1 ? `${idx + 1}. ` : "";
+    const idLink = `<a href="${item.link}">${escapeHtml(item.identifier)}</a>`;
+    lines.push(`${num}${idLink} \u2014 ${escapeHtml(item.title)}`);
+    lines.push(`   Status: ${STATUS_LABELS[item.category]}`);
+    if (item.explanation) {
+      lines.push(`   Blocker: ${linkifyIssueIds(escapeHtml(item.explanation))}`);
+    }
+    if (item.actionText) {
+      lines.push(`   Action needed: ${linkifyIssueIds(escapeHtml(item.actionText))}`);
+    }
+    lines.push(``);
+  }
+
+  const text = lines.filter(Boolean).join("\n");
+
+  if (text.length > MAX_MESSAGE_LENGTH && items.length > 1) {
+    const mid = Math.ceil(items.length / 2);
+    const ok1 = await sendTelegram(items.slice(0, mid));
+    await sleep(MIN_INTERVAL_MS);
+    const ok2 = await sendTelegram(items.slice(mid));
+    return ok1 && ok2;
+  }
+
+  const keyboard = items.slice(0, MAX_BUTTONS_PER_GROUP).map((item) => [
+    { text: getButtonLabel(item), url: item.link },
+  ]);
+
+  const body: Record<string, unknown> = {
     chat_id: CHAT_ID,
     text,
-    parse_mode: "Markdown",
+    parse_mode: "HTML",
     disable_web_page_preview: true,
+    reply_markup: { inline_keyboard: keyboard },
   };
 
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
@@ -150,19 +230,51 @@ async function sendTelegram(item: AlertItem): Promise<boolean> {
       body: JSON.stringify(body),
     });
     const ok = res.ok;
+    const labels = items.map((i) => i.identifier).join(", ");
     const responseText = ok ? "sent" : `HTTP ${res.status}`;
-    auditLog(`${item.category} ${item.identifier} ${responseText}`);
+    auditLog(`${category} group [${labels}] ${responseText}`);
     if (!ok) {
       const errBody = await res.text().catch(() => "unknown");
+      if (res.status === 400) {
+        auditLog(`${category} group [${labels}] HTML_PARSE_ERR, retrying as plain text`);
+        delete body.parse_mode;
+        const retryRes = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (retryRes.ok) {
+          auditLog(`${category} group [${labels}] sent (text fallback)`);
+          return true;
+        }
+        const retryBody = await retryRes.text().catch(() => "unknown");
+        console.error(
+          `Telegram API error for ${category}: ${retryRes.status} ${tokenSafe(retryBody)}`
+        );
+        return false;
+      }
+      if (res.status === 429 && items.length > 0) {
+        try {
+          const errJson = JSON.parse(errBody);
+          const retryAfter = errJson.parameters?.retry_after ?? 5;
+          const waitMs = Math.min(retryAfter * 1000, MAX_RETRY_AFTER_MS);
+          auditLog(`${category} group [${labels}] RATE LIMITED, retrying after ${retryAfter}s`);
+          await sleep(waitMs);
+          return sendTelegram(items);
+        } catch {
+          // non-JSON 429 body, fall through to error log
+        }
+      }
       console.error(
-        `Telegram API error for ${item.identifier}: ${res.status} ${tokenSafe(errBody)}`
+        `Telegram API error for ${category}: ${res.status} ${tokenSafe(errBody)}`
       );
     }
     return ok;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    auditLog(`${item.category} ${item.identifier} FAIL ${tokenSafe(msg)}`);
-    console.error(`Telegram send failed for ${item.identifier}: ${tokenSafe(msg)}`);
+    const labels = items.map((i) => i.identifier).join(", ");
+    auditLog(`${category} group [${labels}] FAIL ${tokenSafe(msg)}`);
+    console.error(`Telegram send failed for ${category}: ${tokenSafe(msg)}`);
     return false;
   }
 }
@@ -188,7 +300,7 @@ interface ApiIssue {
   blockedByIssueIds?: string[];
 }
 
-async function getBlockedIssues(): Promise<AlertItem[]> {
+async function getBlockedIssues(): Promise<FetchResult> {
   const items: AlertItem[] = [];
   try {
     const issues = await apiGet<ApiIssue[]>(
@@ -210,11 +322,12 @@ async function getBlockedIssues(): Promise<AlertItem[]> {
     }
   } catch (err) {
     console.error("Failed fetching blocked issues:", err);
+    return { items: [], ok: false };
   }
-  return items;
+  return { items, ok: true };
 }
 
-async function getQuestionsForJeff(): Promise<AlertItem[]> {
+async function getQuestionsForJeff(): Promise<FetchResult> {
   const items: AlertItem[] = [];
   try {
     const issues = await apiGet<ApiIssue[]>(
@@ -242,11 +355,12 @@ async function getQuestionsForJeff(): Promise<AlertItem[]> {
     }
   } catch (err) {
     console.error("Failed fetching questions for Jeff:", err);
+    return { items: [], ok: false };
   }
-  return items;
+  return { items, ok: true };
 }
 
-async function getCriticalProductionIssues(): Promise<AlertItem[]> {
+async function getCriticalProductionIssues(): Promise<FetchResult> {
   const items: AlertItem[] = [];
   try {
     const issues = await apiGet<ApiIssue[]>(
@@ -267,8 +381,9 @@ async function getCriticalProductionIssues(): Promise<AlertItem[]> {
     }
   } catch (err) {
     console.error("Failed fetching critical production issues:", err);
+    return { items: [], ok: false };
   }
-  return items;
+  return { items, ok: true };
 }
 
 interface Approval {
@@ -281,7 +396,7 @@ interface Approval {
   requestedByAgentId?: string;
   payload?: { title?: string; summary?: string; recommendedAction?: string };
 }
-async function getPendingApprovals(): Promise<AlertItem[]> {
+async function getPendingApprovals(): Promise<FetchResult> {
   const items: AlertItem[] = [];
   try {
     const approvals = await apiGet<Approval[]>(
@@ -306,15 +421,28 @@ async function getPendingApprovals(): Promise<AlertItem[]> {
     }
   } catch (err) {
     console.error("Failed fetching pending approvals:", err);
+    return { items: [], ok: false };
   }
-  return items;
+  return { items, ok: true };
 }
 
-async function sendAll(items: AlertItem[]): Promise<void> {
+async function sendAll(items: AlertItem[]): Promise<string[]> {
+  const groups = new Map<string, AlertItem[]>();
   for (const item of items) {
-    await sendTelegram(item);
-    await new Promise((r) => setTimeout(r, MIN_INTERVAL_MS));
+    const group = groups.get(item.category) || [];
+    group.push(item);
+    groups.set(item.category, group);
   }
+
+  const sentIds: string[] = [];
+  for (const [, groupItems] of groups) {
+    const ok = await sendTelegram(groupItems);
+    if (ok) {
+      sentIds.push(...groupItems.map((i) => i.id));
+    }
+    await sleep(MIN_INTERVAL_MS);
+  }
+  return sentIds;
 }
 
 async function main(): Promise<void> {
@@ -335,12 +463,27 @@ async function main(): Promise<void> {
   }
 
   const state = readState();
-  const allItems = [
-    ...(await getBlockedIssues()),
-    ...(await getPendingApprovals()),
-    ...(await getQuestionsForJeff()),
-    ...(await getCriticalProductionIssues()),
-  ];
+
+  // Fetch all data sources. Each returns an ok flag so we can detect partial
+  // failures and avoid corrupting notification state.
+  const blocked = await getBlockedIssues();
+  const approvals = await getPendingApprovals();
+  const questions = await getQuestionsForJeff();
+  const critical = await getCriticalProductionIssues();
+  const anyFetchFailed = !blocked.ok || !approvals.ok || !questions.ok || !critical.ok;
+
+  const rawItems = [...blocked.items, ...approvals.items, ...questions.items, ...critical.items];
+
+  // Deduplicate across categories — same issue UUID appearing in both blocked
+  // and critical should only alert once, keeping the first (more important) category.
+  const seen = new Set<string>();
+  const allItems: AlertItem[] = [];
+  for (const item of rawItems) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      allItems.push(item);
+    }
+  }
 
   const toSend: AlertItem[] = [];
   for (const item of allItems) {
@@ -355,16 +498,34 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  console.log(`Sending ${toSend.length} alert(s)...`);
-  await sendAll(toSend);
+  const groupCount = new Set(toSend.map((i) => i.category)).size;
+  console.log(`Sending ${toSend.length} alert(s) in ${groupCount} group(s)...`);
+  const sentIds = await sendAll(toSend);
 
   for (const item of toSend) {
-    markAlerted(state, item.id);
+    if (sentIds.includes(item.id)) {
+      markAlerted(state, item.id);
+    }
+  }
+
+  // Only clean up resolved items when ALL fetches succeeded. If any fetch
+  // failed, the data may be incomplete — removing state entries would cause
+  // re-alerting of items that still exist but weren't fetched.
+  if (!anyFetchFailed) {
+    const currentIds = new Set(allItems.map((i) => i.id));
+    for (const id of Object.keys(state.alertedItems)) {
+      if (!currentIds.has(id)) {
+        delete state.alertedItems[id];
+      }
+    }
+  } else {
+    auditLog("SKIP cleanup — one or more API fetches failed");
+    console.warn("One or more API fetches failed — skipping state cleanup to avoid re-alert spam.");
   }
   writeState(state);
 
-  auditLog(`DONE sent ${toSend.length} alert(s)`);
-  console.log(`Done. ${toSend.length} alert(s) sent.`);
+  auditLog(`DONE sent ${sentIds.length}/${toSend.length} alert(s) in ${groupCount} group(s)`);
+  console.log(`Done. ${sentIds.length}/${toSend.length} alert(s) in ${groupCount} group(s) sent.`);
 }
 
 main().catch((err) => {
