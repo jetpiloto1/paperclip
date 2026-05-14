@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sends a daily briefing to Jeff via Telegram.
+# Sends a daily briefing to Jeff via Telegram using HTML parse mode.
 # Usage: TELEGRAM_BOT_TOKEN=<token> JEFF_TELEGRAM_CHAT_ID=<id> ./send-briefing-telegram.sh
 # Briefing text is read from stdin or from $BRIEFING_TEXT env var.
 set -euo pipefail
@@ -22,12 +22,29 @@ if [[ -z "$BRIEFING" ]]; then
   exit 1
 fi
 
+escape_html() {
+  local s="$1"
+  s="${s//&/&amp;}"
+  s="${s//</&lt;}"
+  s="${s//>/&gt;}"
+  s="${s//\"/&quot;}"
+  printf '%s' "$s"
+}
+
+linkify_issue_ids() {
+  local s="$1"
+  printf '%s' "$s" | sed -E 's/([A-Z]{2,})-([0-9]+)/<a href="https:\/\/paperclip.avva.aero\/\1\/issues\/\1-\2">\1-\2<\/a>/g'
+}
+
+BRIEFING_ESCAPED=$(escape_html "$BRIEFING")
+BRIEFING_HTML=$(linkify_issue_ids "$BRIEFING_ESCAPED")
+
 TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 BODY=$(cat <<EOF
 {
   "chat_id": $CHAT_ID,
-  "text": "📋 *Daily Executive Briefing*\n\n${BRIEFING}\n\n_Generated: ${TIMESTAMP}_",
-  "parse_mode": "Markdown",
+  "text": "\ud83d\udccb <b>Daily Executive Briefing</b>\n\n${BRIEFING_HTML}\n\n<i>Generated: ${TIMESTAMP}</i>",
+  "parse_mode": "HTML",
   "disable_web_page_preview": true
 }
 EOF
