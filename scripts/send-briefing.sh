@@ -31,7 +31,7 @@ EOF
 )
 
 URL="https://api.telegram.org/bot${BOT_TOKEN}/sendMessage"
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
+RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 -X POST "$URL" \
   -H "Content-Type: application/json" \
   -d "$BODY" 2>&1)
 

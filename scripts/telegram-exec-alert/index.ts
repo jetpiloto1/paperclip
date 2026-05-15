@@ -11,6 +11,8 @@ const COMPANY_ID = process.env.PAPERCLIP_COMPANY_ID;
 
 const COOLDOWN_MS = 30 * 60 * 1000;
 const MIN_INTERVAL_MS = 1100;
+const API_TIMEOUT_MS = 30_000;
+const TELEGRAM_TIMEOUT_MS = 15_000;
 const STATE_DIR = process.env.TELEGRAM_ALERT_STATE_DIR || "/tmp/telegram-alert";
 const STATE_FILE = join(STATE_DIR, "state.json");
 const AUDIT_LOG = join(STATE_DIR, "audit.log");
@@ -93,6 +95,7 @@ function markAlerted(state: AlertState, itemId: string): void {
 async function apiGet<T>(path: string): Promise<T> {
   const url = `${PAPERCLIP_API_URL}${path}`;
   const res = await fetch(url, {
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${PAPERCLIP_API_KEY}`,
       "Content-Type": "application/json",
@@ -145,6 +148,7 @@ async function sendTelegram(item: AlertItem): Promise<boolean> {
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
   try {
     const res = await fetch(url, {
+      signal: AbortSignal.timeout(TELEGRAM_TIMEOUT_MS),
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
