@@ -296,7 +296,14 @@ interface ApiIssue {
   priority: string;
   assigneeAgentId: string | null;
   assigneeUserId: string | null;
-  blockedBy?: Array<{ id: string }>;
+  blockedBy?: Array<{
+    id: string;
+    identifier: string | null;
+    title: string;
+    status: string;
+    assigneeAgentId: string | null;
+    assigneeUserId: string | null;
+  }>;
   blockedByIssueIds?: string[];
 }
 
@@ -308,7 +315,28 @@ async function getBlockedIssues(): Promise<FetchResult> {
     );
     for (const issue of issues) {
       if (issue.status !== "blocked") continue;
-      const blockerCount = (issue.blockedBy || issue.blockedByIssueIds || []).length;
+      const blockers = issue.blockedBy || [];
+      const blockerCount = blockers.length;
+
+      const blockerDetails = blockers.map((b) => {
+        const idStr = b.identifier || b.id.slice(0, 8);
+        const assignee = b.assigneeAgentId
+          ? `agent ${b.assigneeAgentId.slice(0, 8)}`
+          : b.assigneeUserId
+            ? `user ${b.assigneeUserId.slice(0, 8)}`
+            : "unassigned";
+        const title = b.title.length > 60 ? b.title.slice(0, 57) + "..." : b.title;
+        return `${idStr} "${title}" (${assignee})`;
+      });
+
+      const explanation = blockerCount > 0
+        ? `Blocked by: ${blockerDetails.join("; ")}`
+        : `${issue.identifier} has no blockers listed but status is blocked`;
+
+      const actionText = blockerCount > 0
+        ? `Resolve the ${blockerCount} blocking issue(s) above to unblock this task, or replace them if no longer relevant`
+        : `Set a blocker or update the status to reflect the actual state`;
+
       items.push({
         id: issue.id,
         category: "blocked",
@@ -316,8 +344,8 @@ async function getBlockedIssues(): Promise<FetchResult> {
         title: issue.title,
         reason: `Task is blocked (${blockerCount} blocker(s))`,
         link: makeLink(issue.identifier),
-        explanation: `${issue.identifier} is blocked by ${blockerCount} unresolved issue(s).`,
-        actionText: `Open ${issue.identifier} to review blockers and unblock by changing status from 'Blocked' to 'To Do'.`,
+        explanation,
+        actionText,
       });
     }
   } catch (err) {
