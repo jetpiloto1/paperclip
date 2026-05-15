@@ -39,7 +39,10 @@ export async function prepareOpenCodeRuntimeConfig(input: {
   const skipPermissions = asBoolean(input.config.dangerouslySkipPermissions, true);
   if (!skipPermissions) {
     return {
-      env: input.env,
+      env: {
+        ...input.env,
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
+      },
       notes: [],
       cleanup: async () => {},
     };
@@ -52,7 +55,10 @@ export async function prepareOpenCodeRuntimeConfig(input: {
   // host-fs helper is local-only.
   if (input.targetIsRemote) {
     return {
-      env: input.env,
+      env: {
+        ...input.env,
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
+      },
       notes: [],
       cleanup: async () => {},
     };
@@ -94,9 +100,11 @@ export async function prepareOpenCodeRuntimeConfig(input: {
     env: {
       ...input.env,
       XDG_CONFIG_HOME: runtimeConfigHome,
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
     },
     notes: [
       "Injected runtime OpenCode config with permission.external_directory=allow to avoid headless approval prompts.",
+      "Set COREPACK_ENABLE_DOWNLOAD_PROMPT=0 to prevent corepack download prompts from hanging agent heartbeats.",
     ],
     cleanup: async () => {
       await fs.rm(runtimeConfigHome, { recursive: true, force: true });

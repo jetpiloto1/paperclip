@@ -901,6 +901,11 @@ export function buildPaperclipEnv(agent: { id: string; companyId: string }): Rec
   const vars: Record<string, string> = {
     PAPERCLIP_AGENT_ID: agent.id,
     PAPERCLIP_COMPANY_ID: agent.companyId,
+    // Prevent corepack from prompting interactively in non-interactive agent
+    // runtimes. The pnpm corepack shim sets COREPACK_ENABLE_DOWNLOAD_PROMPT=1
+    // which would hang a headless agent indefinitely if corepack needs to
+    // download a package manager version.
+    COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
   };
   const runtimeHost = resolveHostForUrl(
     process.env.PAPERCLIP_LISTEN_HOST ?? process.env.HOST ?? "localhost",

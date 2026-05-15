@@ -72,7 +72,10 @@ describe("prepareOpenCodeRuntimeConfig", () => {
       config: { dangerouslySkipPermissions: false },
     });
 
-    expect(prepared.env).toEqual({ XDG_CONFIG_HOME: configHome });
+    expect(prepared.env).toEqual({
+      XDG_CONFIG_HOME: configHome,
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
+    });
     expect(prepared.notes).toEqual([]);
     await prepared.cleanup();
   });
