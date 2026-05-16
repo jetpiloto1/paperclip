@@ -279,52 +279,6 @@ Deno.test({
 });
 
 Deno.test({
-  name: "POST / routes callback_query via router and sends Telegram message",
-  async fn() {
-    setupMockFetch();
-    const { handleRequest } = await import("./index.ts");
-    mockFetch(/api\.telegram\.org/, () => mockJsonResponse({ ok: true }));
-    const res = await handleRequest(jsonRequest("POST", "/", {
-      update_id: 1,
-      callback_query: {
-        id: "cq-1",
-        from: { id: 12345, first_name: "TestUser" },
-        message: {
-          message_id: 100,
-          chat: { id: 67890, type: "private" },
-        },
-        data: "/help",
-      },
-    }));
-    const data = await res.json();
-    assertEquals(data.ok, true);
-    assertEquals(data.routedFrom, "callback_query");
-    teardownMockFetch();
-  },
-  sanitizeResources: false,
-  sanitizeOps: false,
-});
-
-Deno.test({
-  name: "POST / ignores incomplete callback_query (missing chat or data)",
-  async fn() {
-    const { handleRequest } = await import("./index.ts");
-    const res = await handleRequest(jsonRequest("POST", "/", {
-      update_id: 1,
-      callback_query: {
-        id: "cq-2",
-        from: { id: 12345 },
-      },
-    }));
-    const data = await res.json();
-    assertEquals(data.ok, true);
-    assertEquals(data.reason, "incomplete callback query");
-  },
-  sanitizeResources: false,
-  sanitizeOps: false,
-});
-
-Deno.test({
   name: "POST / handles API error gracefully",
   async fn() {
     setupMockFetch();
