@@ -1,0 +1,16 @@
+project_id = "tujyntcurpxvxgokcsaz"
+
+[api]
+enabled = true
+
+[auth]
+enabled = true
+
+[edge_runtime]
+enabled = true
+
+[analytics]
+enabled = false
+
+[functions.chase-telegram]
+verify_jwt = false
