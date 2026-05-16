@@ -1815,6 +1815,12 @@ function enrichWakeContextSnapshot(input: {
   if (!readNonEmptyString(contextSnapshot["wakeTriggerDetail"]) && triggerDetail) {
     contextSnapshot.wakeTriggerDetail = triggerDetail;
   }
+  for (const passthroughKey of ["chaseApiKey", "telegramFunctionUrl"] as const) {
+    const val = readNonEmptyString(payload?.[passthroughKey]);
+    if (val && !readNonEmptyString(contextSnapshot[passthroughKey])) {
+      contextSnapshot[passthroughKey] = val;
+    }
+  }
   normalizeModelProfileWakeContext({ contextSnapshot, payload });
   normalizeInteractionContinuationWakeContext(contextSnapshot, payload);
 
