@@ -562,6 +562,42 @@ aws iam delete-role --role-name paperclip-ecs-task
 aws logs delete-log-group --log-group-name /ecs/paperclip
 ```
 
+## Rotating Secrets
+
+To rotate a secret (e.g., a GitHub PAT that has expired), update the value in AWS Secrets Manager and force a new ECS deployment.
+
+**GitHub token rotation** — automated script:
+```bash
+# 1. Create a new GitHub PAT at https://github.com/settings/tokens
+#    Minimum scope: repo (full control) for AI agent operations
+
+# 2. Run the rotation script
+./scripts/rotate-github-token.sh "ghp_NEW_TOKEN_HERE"
+
+# 3. Verify the deployment
+aws logs tail /ecs/paperclip --since 5m --follow
+curl -sf https://$PAPERCLIP_DOMAIN/api/health
+```
+
+Manual equivalent:
+```bash
+# Update the secret
+aws secretsmanager put-secret-value \
+  --secret-id paperclip/github-token \
+  --secret-string "YOUR_NEW_GITHUB_PAT"
+
+# Force redeployment
+aws ecs update-service \
+  --cluster paperclip \
+  --service paperclip-server \
+  --force-new-deployment
+
+# Wait for stability
+aws ecs wait services-stable \
+  --cluster paperclip \
+  --services paperclip-server
+```
+
 ## Cost Reference
 
 | Service | Config | Monthly |
