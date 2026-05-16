@@ -397,6 +397,32 @@ Deno.test({
 });
 
 Deno.test({
+  name: "routeQuery /commands handler returns replyMarkup with inline keyboard",
+  async fn() {
+    const { handler } = routeQuery("/commands");
+    const result = await handler();
+    assertEquals(result.replyMarkup !== undefined, true);
+    assertEquals(Array.isArray(result.replyMarkup!.inline_keyboard), true);
+    assertEquals(result.replyMarkup!.inline_keyboard.length > 0, true);
+    assertEquals(result.replyMarkup!.inline_keyboard[0][0].text, "/help");
+    assertEquals(result.replyMarkup!.inline_keyboard[0][0].callback_data, "/help");
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "routeQuery /help handler does not include replyMarkup",
+  async fn() {
+    const { handler } = routeQuery("/help");
+    const result = await handler();
+    assertEquals(result.replyMarkup, undefined);
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
   name: "routeQuery hello handler returns greeting",
   async fn() {
     const { handler } = routeQuery("hello");

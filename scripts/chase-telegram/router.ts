@@ -160,6 +160,8 @@ async function handleCommands(): Promise<QueryResult> {
     text: [
       "<b>Available commands</b>",
       "",
+      "Tap a button below to run an instant command, or type it manually with arguments.",
+      "",
       "<b>Instant commands</b>",
       "These return immediately without lookup.",
       "",
@@ -177,11 +179,39 @@ async function handleCommands(): Promise<QueryResult> {
       "• <code>/blocked</code> — Blocked issues",
       "• <code>/approvals</code> — Pending approvals",
       "• <code>/agents</code> — List agents",
-      "• <code>/detail</code> — Issue details, e.g. <code>/detail CRE-123</code>",
-      "• <code>/search</code> — Search issues",
+      "• <code>/detail</code> — Issue details (type manually with ID)",
+      "• <code>/search</code> — Search issues (type manually with query)",
       "• <code>/spend</code> — Monthly spend and budget",
       "• <code>/recent</code> — Recent completed work",
     ].join("\n"),
+    replyMarkup: {
+      inline_keyboard: [
+        [
+          { text: "/help", callback_data: "/help" },
+          { text: "/commands", callback_data: "/commands" },
+        ],
+        [
+          { text: "/about", callback_data: "/about" },
+          { text: "/ping", callback_data: "/ping" },
+        ],
+        [
+          { text: "/version", callback_data: "/version" },
+          { text: "/overview", callback_data: "/overview" },
+        ],
+        [
+          { text: "/blocked", callback_data: "/blocked" },
+          { text: "/approvals", callback_data: "/approvals" },
+        ],
+        [
+          { text: "/agents", callback_data: "/agents" },
+          { text: "/spend", callback_data: "/spend" },
+        ],
+        [
+          { text: "/recent", callback_data: "/recent" },
+          { text: "/status", callback_data: "/status" },
+        ],
+      ],
+    },
   };
 }
 
