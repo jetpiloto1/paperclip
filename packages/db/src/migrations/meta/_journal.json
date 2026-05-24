@@ -628,6 +628,13 @@
       "idx": 89,
       "when": 1748131200000,
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1779587150874,
+      "tag": "0090_bright_thor_girl",
+      "breakpoints": true
     }
   ]
 }

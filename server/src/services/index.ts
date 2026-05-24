@@ -67,4 +67,5 @@ export { briefingQualityService, type BriefingQualityService } from "./briefing-
 export { scoreAdjustmentEngine, type ScoreAdjustmentEngine } from "./score-adjustment-engine.js";
 export { reReviewQueueService, type ReReviewQueueService } from "./re-review-queue.js";
 export { crewRatingFlagsService, type CrewRatingFlagsService } from "./crew-rating-flags.js";
-export { renderBriefingHtml, generateMondayBriefing } from "./crewbrief-briefing.js";
+export { renderBriefingHtml, generateMondayBriefing, FlightCrewBriefing } from "./crewbrief-briefing.js";
+export { briefingGenerationService, type BriefingGenerationService } from "./briefing-generation.js";
