@@ -299,5 +299,6 @@ function generateMondayBriefing(tripId: string, dutyDayId: string): FlightCrewBr
   };
 }
 
-export { generateMondayBriefing, FlightCrewBriefing };
+export { generateMondayBriefing };
+export type { FlightCrewBriefing };
 export type { BriefingCrew, BriefingFlight, BriefingStation, BriefingEnroute, BriefingNotam, BriefingFuel, RiskCategory, Risk };
