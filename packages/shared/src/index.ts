@@ -1139,6 +1139,18 @@ export {
   submitBriefingFeedbackSchema,
 } from "./validators/briefing-feedback.js";
 export {
+  airportSchema,
+  aircraftSchema,
+  crewMemberSchema,
+  tripCreateSchema,
+} from "./validators/crewbrief-intake.js";
+export type {
+  AirportInput,
+  AircraftInput,
+  CrewMemberInput,
+  TripCreateInput,
+} from "./validators/crewbrief-intake.js";
+export {
   triggerBriefingQualityClassificationSchema,
 } from "./validators/briefing-quality.js";
 
