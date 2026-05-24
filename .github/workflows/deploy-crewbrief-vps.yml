@@ -52,7 +52,18 @@ jobs:
             rm -rf /tmp/tsx-1000/*
 
             echo "=== Restarting server ==="
-            sudo systemctl restart paperclip
+            # Try sudo first (requires sudoers config), fall back to killing the main
+            # process so systemd's Restart=always picks it up
+            if command -v sudo >/dev/null 2>&1; then
+              sudo systemctl restart paperclip 2>/dev/null && echo "Restarted via systemctl" || {
+                echo "sudo not available, using SIGINT restart..."
+                kill -INT "$(pgrep -f 'paperclipai run' | head -1)" 2>/dev/null
+                sleep 12  # RestartSec=10 + buffer
+              }
+            else
+              kill -INT "$(pgrep -f 'paperclipai run' | head -1)" 2>/dev/null
+              sleep 12
+            fi
 
             echo "=== Waiting for server to be healthy ==="
             for i in $(seq 1 30); do
@@ -68,10 +79,19 @@ jobs:
             done
 
             echo "=== Running database migrations ==="
-            # Embedded PostgreSQL on port 54329 with trust auth via unix socket
-            # Use the running server process env to find the DATABASE_URL
-            DB_URL=$(grep -z 'DATABASE_URL' /proc/$(systemctl show -p MainPID paperclip | cut -d= -f2)/environ 2>/dev/null | tr '\0' '\n' | grep DATABASE_URL | cut -d= -f2-)
+            DB_URL=""
+            # Try reading from .env first, then from the running process
+            if [ -f /opt/paperclip/.env ]; then
+              DB_URL=$(grep -E '^DATABASE_URL=' /opt/paperclip/.env 2>/dev/null | cut -d= -f2-)
+            fi
+            if [ -z "$DB_URL" ]; then
+              MAIN_PID=$(pgrep -f 'paperclipai run' | head -1)
+              if [ -n "$MAIN_PID" ]; then
+                DB_URL=$(cat "/proc/$MAIN_PID/environ" 2>/dev/null | tr '\0' '\n' | grep '^DATABASE_URL=' | cut -d= -f2-)
+              fi
+            fi
             if [ -n "$DB_URL" ]; then
+              echo "Running database migrations..."
               DATABASE_URL="$DB_URL" pnpm --filter @paperclipai/db exec drizzle-kit push
             else
               echo "WARNING: Could not determine DATABASE_URL. Migrations may need manual application."
@@ -89,6 +109,7 @@ jobs:
           DEPLOY_EOF
 
       - name: Verify deployment
+        if: steps.check_secrets.outputs.skip_deploy == 'false'
         run: |
           echo "=== Verifying endpoints ==="
           for ep in \
