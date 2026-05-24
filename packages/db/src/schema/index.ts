@@ -82,3 +82,9 @@ export {
   crewbriefEmailLog,
   crewbriefHubspotSync,
 } from "./crewbrief_waitlist.js";
+export { briefingFeedback } from "./briefing_feedback.js";
+export { briefingNegativeRatingAlerts } from "./briefing_negative_rating_alerts.js";
+export { briefingQuality } from "./briefing_quality.js";
+export { reReviewQueue } from "./re_review_queue.js";
+export { crewRatingFlags } from "./crew_rating_flags.js";
+export { qualityScoreAdjustments } from "./quality_score_adjustments.js";

@@ -1148,3 +1148,67 @@ export type {
   SequenceInfo,
   CrewbriefConfig,
 } from "./crewbrief.js";
+
+export type {
+  FlightCrewBriefing,
+  BriefingOverview,
+  WeatherSection,
+  WeatherStation,
+  NotamSection,
+  Notam,
+  RouteWeather,
+  RouteSection,
+  AlertSection,
+  CrewAlert,
+} from "./types/briefing.js";
+
+export type {
+  BriefingFeedback,
+  BriefingFeedbackCreate,
+  BriefingFeedbackRating,
+  BriefingFeedbackCategory,
+  FeedbackTrends,
+} from "./types/briefing-feedback.js";
+
+export {
+  BRIEFING_FEEDBACK_RATINGS,
+  BRIEFING_FEEDBACK_CATEGORIES,
+} from "./types/briefing-feedback.js";
+
+export type {
+  BriefingQualityLabel,
+  BriefingQualityDimension,
+  BriefingDimensionScore,
+  BriefingGateResult,
+  BriefingQualityClassification,
+  BriefingQualityRecord,
+  BriefingQualitySummary,
+} from "./types/briefing-quality.js";
+
+export {
+  BRIEFING_QUALITY_LABELS,
+  BRIEFING_QUALITY_DIMENSIONS,
+  BRIEFING_QUALITY_GATES,
+  BRIEFING_MANDATORY_GATE_IDS,
+} from "./types/briefing-quality.js";
+
+export type {
+  QualityScoreAdjustment,
+  ReReviewQueueItem,
+  CrewRatingFlag,
+  ScoreAdjustmentResult,
+  ReReviewTriggerReason,
+  ReReviewStatus,
+  EscalationLevel,
+} from "./types/quality-score-adjustments.js";
+
+export type {
+  QualityScorecard,
+  QualityEscalation,
+  QualityMetric,
+  QualityMetricsResponse,
+  CrewMemberScore,
+  GatePassRate,
+} from "./types/quality.js";
+
+

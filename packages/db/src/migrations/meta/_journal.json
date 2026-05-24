@@ -622,6 +622,12 @@
       "idx": 88,
       "when": 1747700000000,
       "breakpoints": true
+    },
+    {
+      "tag": "0090_briefing_tables",
+      "idx": 89,
+      "when": 1748131200000,
+      "breakpoints": true
     }
   ]
 }

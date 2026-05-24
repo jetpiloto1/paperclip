@@ -11,6 +11,8 @@ import { boardMutationGuard } from "./middleware/board-mutation-guard.js";
 import { privateHostnameGuard, resolvePrivateHostnameAllowSet } from "./middleware/private-hostname-guard.js";
 import { healthRoutes } from "./routes/health.js";
 import { crewbriefRoutes } from "./routes/crewbrief.js";
+import { briefingFeedbackRoutes } from "./routes/briefing-feedback.js";
+import { briefingQualityRoutes } from "./routes/briefing-quality.js";
 import { companyRoutes } from "./routes/companies.js";
 import { companySkillRoutes } from "./routes/company-skills.js";
 import { agentRoutes } from "./routes/agents.js";
@@ -69,6 +71,7 @@ import {
   crewbriefWebhookService,
 } from "./services/index.js";
 import { createBlogService } from "./services/crewbrief-blog.js";
+import { renderBriefingHtml, generateMondayBriefing } from "./services/crewbrief-briefing.js";
 
 type UiMode = "none" | "static" | "vite-dev";
 const FEEDBACK_EXPORT_FLUSH_INTERVAL_MS = 5_000;
@@ -328,6 +331,8 @@ export async function createApp(
   const cbNurture = crewbriefNurtureService(db, crewbriefCfg, cbHubspot, cbPosthog, cbEmail);
   const cbWebhooks = crewbriefWebhookService(cbPosthog, cbNurture);
   api.use("/crewbrief", crewbriefRoutes(db, crewbriefCfg, cbNurture, cbHubspot, cbWebhooks));
+  api.use("/feedback", briefingFeedbackRoutes(db));
+  api.use("/briefing-quality", briefingQualityRoutes(db));
 
   if (process.env.NODE_ENV === "production" || process.env.CREWBRIEF_ENABLE_NURTURE === "true") {
     const NURTURE_POLL_MS = 60_000;
@@ -432,6 +437,22 @@ export async function createApp(
       } else {
         res.set("Content-Type", "text/html").status(404).end(crewbriefBlog.generateBlogNotFoundHtml());
       }
+    });
+
+    app.use(async (req, res, next) => {
+      if (req.hostname !== crewbriefHost && !req.hostname.endsWith("." + crewbriefHost)) {
+        return next();
+      }
+      if (req.path !== "/briefing") {
+        return next();
+      }
+      const briefing = generateMondayBriefing("MONDAY-001", "DUTY-001");
+      const html = renderBriefingHtml(briefing);
+      if (!html) {
+        res.status(500).end("Briefing template not found");
+        return;
+      }
+      res.set("Content-Type", "text/html").status(200).end(html);
     });
 
     app.use((req, res, next) => {
