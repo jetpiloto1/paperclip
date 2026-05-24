@@ -1135,6 +1135,13 @@ export {
   crewbriefEnvSchema,
 } from "./crewbrief.js";
 
+export {
+  submitBriefingFeedbackSchema,
+} from "./validators/briefing-feedback.js";
+export {
+  triggerBriefingQualityClassificationSchema,
+} from "./validators/briefing-quality.js";
+
 export type {
   WaitlistSignupInput,
   WaitlistSignupResponse,
